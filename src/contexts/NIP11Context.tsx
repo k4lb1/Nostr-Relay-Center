@@ -26,14 +26,17 @@ async function fetchNIP11Metadata(relayUrl: string): Promise<NIP11Metadata> {
   const timeout = setTimeout(() => controller.abort(), 10000)
   const fetchOpts = { signal: controller.signal, headers: { Accept: 'application/nostr+json' } }
 
-  let response = await fetch(baseUrl + '/', fetchOpts)
-  if (!response.ok && response.status !== 404) throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-  if (!response.ok) {
-    response = await fetch(baseUrl + '/.well-known/nostr.json', fetchOpts)
-    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+  try {
+    let response = await fetch(baseUrl + '/', fetchOpts)
+    if (!response.ok && response.status !== 404) throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    if (!response.ok) {
+      response = await fetch(baseUrl + '/.well-known/nostr.json', fetchOpts)
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    return response.json() as Promise<NIP11Metadata>
+  } finally {
+    clearTimeout(timeout)
   }
-  clearTimeout(timeout)
-  return response.json() as Promise<NIP11Metadata>
 }
 
 export function NIP11Provider({ children }: { children: React.ReactNode }) {

@@ -59,6 +59,7 @@ export function sendEvent(ws: WebSocket, event: Event): Promise<void> {
     ws.send(message)
 
     const timeout = setTimeout(() => {
+      ws.removeEventListener('message', messageHandler)
       reject(new Error('Timeout sending event'))
     }, 5000)
 

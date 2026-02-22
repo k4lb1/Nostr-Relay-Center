@@ -2,6 +2,23 @@ import { useEffect } from 'react'
 import { useNIP11 } from '../../hooks/useNIP11'
 import { useRelay } from '../../hooks/useRelay'
 
+function Field({
+  label,
+  children,
+  valueClassName,
+}: {
+  label: string
+  children: React.ReactNode
+  valueClassName?: string
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-sm font-medium text-[var(--text-muted)]">{label}</span>
+      <span className={valueClassName ?? 'text-[var(--text)]'}>{children}</span>
+    </div>
+  )
+}
+
 export default function RelayMetadata() {
   const { url, isConnected } = useRelay()
   const { metadata, loading, error, fetchMetadata } = useNIP11()
@@ -51,62 +68,20 @@ export default function RelayMetadata() {
       </header>
 
       <article className="flex flex-col gap-3">
-        {metadata.name && (
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-[var(--text-muted)]">Name</span>
-            <span className="text-[var(--text)]">{metadata.name}</span>
-          </div>
-        )}
-
-        {metadata.description && (
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-[var(--text-muted)]">Description</span>
-            <span className="text-[var(--text)]">{metadata.description}</span>
-          </div>
-        )}
-
+        {metadata.name && <Field label="Name">{metadata.name}</Field>}
+        {metadata.description && <Field label="Description">{metadata.description}</Field>}
         {metadata.pubkey && (
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-[var(--text-muted)]">Pubkey</span>
-            <span className="font-mono text-sm text-[var(--text)] break-all">{metadata.pubkey}</span>
-          </div>
+          <Field label="Pubkey" valueClassName="font-mono text-sm text-[var(--text)] break-all">
+            {metadata.pubkey}
+          </Field>
         )}
-
-        {metadata.contact && (
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-[var(--text-muted)]">Contact</span>
-            <span className="text-[var(--text)]">{metadata.contact}</span>
-          </div>
-        )}
-
-        {metadata.software && (
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-[var(--text-muted)]">Software</span>
-            <span className="text-[var(--text)]">{metadata.software}</span>
-          </div>
-        )}
-
-        {metadata.version && (
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-[var(--text-muted)]">Version</span>
-            <span className="text-[var(--text)]">{metadata.version}</span>
-          </div>
-        )}
-
+        {metadata.contact && <Field label="Contact">{metadata.contact}</Field>}
+        {metadata.software && <Field label="Software">{metadata.software}</Field>}
+        {metadata.version && <Field label="Version">{metadata.version}</Field>}
         {metadata.supported_nips && metadata.supported_nips.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-[var(--text-muted)]">Supported NIPs</span>
-            <div className="flex flex-wrap gap-2">
-              {metadata.supported_nips.map((nip) => (
-                <span
-                  key={nip}
-                  className="px-2 py-1 text-xs font-mono bg-[var(--bg)] border border-[var(--border)] text-[var(--text-muted)] rounded"
-                >
-                  NIP-{nip}
-                </span>
-              ))}
-            </div>
-          </div>
+          <Field label="Supported NIPs" valueClassName="text-[var(--text)] font-mono text-sm">
+            {metadata.supported_nips.map((n) => `NIP-${n}`).join(', ')}
+          </Field>
         )}
 
         {metadata.limitation && (
@@ -161,24 +136,28 @@ export default function RelayMetadata() {
                   </span>
                 </div>
               )}
+              {metadata.limitation.max_content_length && (
+                <div>
+                  <span className="text-[var(--text-muted)]">Max. content length: </span>
+                  <span className="text-[var(--text)]">{metadata.limitation.max_content_length}</span>
+                </div>
+              )}
+              {metadata.limitation.min_pow_difficulty !== undefined && (
+                <div>
+                  <span className="text-[var(--text-muted)]">Min. PoW difficulty: </span>
+                  <span className="text-[var(--text)]">{metadata.limitation.min_pow_difficulty}</span>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {metadata.relay_countries && metadata.relay_countries.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-[var(--text-muted)]">Relay countries</span>
-            <span className="text-[var(--text)]">{metadata.relay_countries.join(', ')}</span>
-          </div>
+          <Field label="Relay countries">{metadata.relay_countries.join(', ')}</Field>
         )}
-
         {metadata.posting_policy && (
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-[var(--text-muted)]">Posting policy</span>
-            <span className="text-[var(--text)]">{metadata.posting_policy}</span>
-          </div>
+          <Field label="Posting policy">{metadata.posting_policy}</Field>
         )}
-
         {metadata.payments_url && (
           <div className="flex flex-col gap-1">
             <span className="text-sm font-medium text-[var(--text-muted)]">Payments URL</span>
@@ -214,19 +193,7 @@ export default function RelayMetadata() {
         )}
 
         {metadata.tags && metadata.tags.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-[var(--text-muted)]">Tags</span>
-            <div className="flex flex-wrap gap-2">
-              {metadata.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="px-2 py-1 text-xs bg-[var(--bg)] border border-[var(--border)] text-[var(--text-muted)] rounded"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
+          <Field label="Tags">{metadata.tags.join(', ')}</Field>
         )}
       </article>
     </section>

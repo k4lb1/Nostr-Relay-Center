@@ -1,16 +1,25 @@
 import { useEffect, useState } from 'react'
 import { useRelay } from '../../hooks/useRelay'
 
+const COUNT_KINDS = [0, 1, 3, 5, 7] as const
+
 export default function RelayStats() {
   const { isConnected, requestCount, recentKind1Events } = useRelay()
-  const [eventCount, setEventCount] = useState<number | null>(null)
+  const [countsByKind, setCountsByKind] = useState<Record<number, number | null>>({})
 
   useEffect(() => {
     if (!isConnected) {
-      setEventCount(null)
+      setCountsByKind({})
       return
     }
-    requestCount({ kinds: [1] }).then((n) => setEventCount(n))
+    Promise.all(
+      COUNT_KINDS.map(async (kind) => {
+        const n = await requestCount({ kinds: [kind] })
+        return [kind, n] as const
+      })
+    ).then((pairs) => {
+      setCountsByKind(Object.fromEntries(pairs))
+    })
   }, [isConnected, requestCount])
 
   if (!isConnected) {
@@ -31,12 +40,22 @@ export default function RelayStats() {
       </header>
 
       <article className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1 p-3 rounded-md bg-[var(--bg)] border border-[var(--border)]">
-          <span className="text-xs font-medium text-[var(--text-muted)]">Event count (Kind 1)</span>
-          <span className="text-sm text-[var(--text)]">
-            {eventCount === null ? '—' : eventCount.toLocaleString()}
-          </span>
-          {eventCount === null && (
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-medium text-[var(--text-muted)]">Events per kind (NIP-45 COUNT)</span>
+          <ul className="flex flex-col gap-1 text-sm">
+            {COUNT_KINDS.map((kind) => (
+              <li
+                key={kind}
+                className="flex justify-between gap-2 p-2 rounded-md bg-[var(--bg)] border border-[var(--border)]"
+              >
+                <span className="text-[var(--text-muted)]">Kind {kind}</span>
+                <span className="text-[var(--text)] font-mono tabular-nums">
+                  {countsByKind[kind] === undefined ? '…' : countsByKind[kind] === null ? '—' : countsByKind[kind].toLocaleString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {Object.keys(countsByKind).length > 0 && Object.values(countsByKind).every((v) => v === null) && (
             <span className="text-xs text-[var(--text-muted)]">Relay may not support NIP-45 COUNT</span>
           )}
         </div>

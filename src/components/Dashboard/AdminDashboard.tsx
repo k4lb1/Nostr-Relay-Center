@@ -13,7 +13,7 @@ export default function AdminDashboard() {
 
   return (
     <section className="flex flex-col gap-6">
-      <section className="flex flex-col gap-6 w-full">
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
         {isConnected ? (
           <>
             <RelayLatencyChart />
@@ -21,7 +21,7 @@ export default function AdminDashboard() {
             <ConnectionDurationChart />
           </>
         ) : (
-          <p className="text-[var(--text-muted)] py-4">
+          <p className="text-[var(--text-muted)] py-4 lg:col-span-3">
             Connect to a relay to see latency and connection duration.
           </p>
         )}

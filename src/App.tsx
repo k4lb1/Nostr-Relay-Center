@@ -37,7 +37,7 @@ function AppContent() {
     <>
     <main className="min-h-screen bg-[var(--bg)] pt-24 pb-12">
       <AppHeader />
-      <section className="max-w-2xl mx-auto px-6 flex flex-col gap-6">
+      <section className="max-w-2xl md:max-w-4xl xl:max-w-6xl mx-auto px-6 flex flex-col gap-6">
         <h1 className="text-2xl font-bold text-[var(--text)]">Nostr Relay Center</h1>
         {!isAuthenticated && <NSECAuth />}
         {isAuthenticated && (
