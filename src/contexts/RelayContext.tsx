@@ -36,7 +36,7 @@ export function RelayProvider({ children }: { children: React.ReactNode }) {
   const [durationSamples, setDurationSamples] = useState<number[]>([])
   const [kind1CountSamples, setKind1CountSamples] = useState<number[]>([])
   const [recentKind1Events, setRecentKind1Events] = useState<Event[]>([])
-  const kind1EventsThisSecondRef = useRef(0)
+  const kind1EventTimesRef = useRef<number[]>([])
   const connectedAtRef = useRef<number | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
 
@@ -136,19 +136,40 @@ export function RelayProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isConnected || !wsRef.current) return
-    kind1EventsThisSecondRef.current = 0
+
+    kind1EventTimesRef.current = []
+    setKind1CountSamples([])
     setRecentKind1Events([])
+
     const unsub = subscribeToRecentEvents(wsRef.current, { kinds: [1], limit: 20 }, (ev) => {
-      kind1EventsThisSecondRef.current += 1
+      kind1EventTimesRef.current.push(Date.now())
       setRecentKind1Events((prev) => {
         const next = prev.some((e) => e.id === ev.id) ? prev : [ev, ...prev].slice(0, 5)
         return next
       })
     })
-    const id = setInterval(() => {
-      setKind1CountSamples((prev) => [...prev.slice(1 - SAMPLES_LAST_10_MIN), kind1EventsThisSecondRef.current])
-      kind1EventsThisSecondRef.current = 0
-    }, PING_INTERVAL_MS)
+
+    const tick = () => {
+      const now = Date.now()
+      const cutoff = now - SAMPLES_LAST_10_MIN * 1000
+      const times = kind1EventTimesRef.current.filter((t) => t >= cutoff)
+      kind1EventTimesRef.current = times
+
+      const counts = new Array(SAMPLES_LAST_10_MIN).fill(0)
+      for (const t of times) {
+        const secondsAgo = Math.floor((now - t) / 1000)
+        if (secondsAgo >= 0 && secondsAgo < SAMPLES_LAST_10_MIN) {
+          const idx = SAMPLES_LAST_10_MIN - 1 - secondsAgo
+          counts[idx] += 1
+        }
+      }
+
+      setKind1CountSamples(counts)
+    }
+
+    tick()
+    const id = setInterval(tick, PING_INTERVAL_MS)
+
     return () => {
       unsub()
       clearInterval(id)

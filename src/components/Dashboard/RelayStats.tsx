@@ -56,7 +56,9 @@ export default function RelayStats() {
             ))}
           </ul>
           {Object.keys(countsByKind).length > 0 && Object.values(countsByKind).every((v) => v === null) && (
-            <span className="text-xs text-[var(--text-muted)]">Relay may not support NIP-45 COUNT</span>
+            <span className="text-xs text-red-600 dark:text-red-400">
+              Relay may not support NIP-45 COUNT
+            </span>
           )}
         </div>
 

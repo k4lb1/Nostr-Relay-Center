@@ -1,6 +1,5 @@
 import { useRelay } from '../../hooks/useRelay'
 import ConnectionsList from './ConnectionsList'
-import ConnectionDurationChart from './ConnectionDurationChart'
 import ErrorConsole from './ErrorConsole'
 import Kind1CountChart from './Kind1CountChart'
 import RelayLatencyChart from './RelayLatencyChart'
@@ -13,16 +12,15 @@ export default function AdminDashboard() {
 
   return (
     <section className="flex flex-col gap-6">
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
         {isConnected ? (
           <>
             <RelayLatencyChart />
             <Kind1CountChart />
-            <ConnectionDurationChart />
           </>
         ) : (
-          <p className="text-[var(--text-muted)] py-4 lg:col-span-3">
-            Connect to a relay to see latency and connection duration.
+          <p className="text-[var(--text-muted)] py-4 lg:col-span-2">
+            Connect to a relay to see latency and activity charts.
           </p>
         )}
       </section>

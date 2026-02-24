@@ -74,7 +74,7 @@ export default function ErrorConsole() {
         role="log"
         aria-live="polite"
         aria-label="Error console log"
-        className="max-h-[240px] overflow-y-auto rounded-md bg-black/80 p-3 font-mono text-sm"
+        className="max-h-[240px] overflow-y-auto rounded-md bg-[var(--bg-secondary)] dark:bg-black/80 p-3 font-mono text-sm"
       >
         {logs.length === 0 ? (
           <div className="text-[var(--text-muted)]">No errors yet.</div>

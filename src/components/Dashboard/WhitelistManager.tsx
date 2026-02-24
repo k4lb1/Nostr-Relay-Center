@@ -145,7 +145,8 @@ export default function WhitelistManager() {
       <header>
         <h2 className="text-xl font-semibold text-[var(--text)]">Whitelist Management</h2>
         <p className="text-sm text-[var(--text-muted)] mt-1">
-          Manage allowed pubkeys for the relay (Kind 25000 event)
+          Manage allowed pubkeys for the relay (Kind 25000 event). Actual behavior depends on the relay configuration
+          and its admin keys.
         </p>
       </header>
 
@@ -171,7 +172,7 @@ export default function WhitelistManager() {
 
       {nip25000Supported && success && (
         <article className="p-3 rounded-md border border-green-800 dark:border-green-500 bg-green-950/20 dark:bg-green-950/30">
-          <p className="text-sm text-green-700 dark:text-green-300">Whitelist updated successfully</p>
+          <p className="text-sm text-green-700 dark:text-green-300">Whitelist event accepted by relay</p>
         </article>
       )}
 
