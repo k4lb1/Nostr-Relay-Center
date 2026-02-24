@@ -137,11 +137,13 @@ export function RelayProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isConnected || !wsRef.current) return
 
+    const since = Math.floor(Date.now() / 1000)
+
     kind1EventTimesRef.current = []
     setKind1CountSamples([])
     setRecentKind1Events([])
 
-    const unsub = subscribeToRecentEvents(wsRef.current, { kinds: [1], limit: 20 }, (ev) => {
+    const unsub = subscribeToRecentEvents(wsRef.current, { kinds: [1], limit: 20, since }, (ev) => {
       kind1EventTimesRef.current.push(Date.now())
       setRecentKind1Events((prev) => {
         const next = prev.some((e) => e.id === ev.id) ? prev : [ev, ...prev].slice(0, 5)

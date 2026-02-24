@@ -167,7 +167,7 @@ export function requestCount(
 
 export function subscribeToRecentEvents(
   ws: WebSocket,
-  filter: { kinds: number[]; limit?: number },
+  filter: { kinds: number[]; limit?: number; since?: number },
   onEvent: (event: Event) => void
 ): () => void {
   if (ws.readyState !== WebSocket.OPEN) return () => {}
