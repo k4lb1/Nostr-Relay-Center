@@ -1,52 +1,58 @@
 # Relay Admin Error Reporting (Kind 1984)
 
-Quick & dirty error reporting for nostr-rs-relay. Sends critical errors as Nostr events (Kind 1984) to an admin pubkey when DB/validation fails.
+Sends critical relay errors as Nostr events (Kind 1984) to a configurable admin pubkey. Admins can subscribe and receive alerts in any Nostr client (e.g. Nostr Relay Center PWA).
+
+## How it works
+
+- **Kind 1984:** The relay creates signed Nostr events containing the error message.
+- **#p tag:** Admin pubkey in the event so admins can subscribe with a filter.
+- **Rate limit:** Default 60 seconds between events to avoid flooding.
+- **Distribution:** Via `bcast_tx` (broadcast to connected clients), not `event_tx` (no persistence).
+- **No recursion:** `send_admin_error_event` is only called from code paths that do not process Kind 1984 events. Admin events go only to the broadcast stream, not to persistence.
 
 ## Integration into nostr-rs-relay
 
-1. Copy `admin_error.rs` into `src/` of your nostr-rs-relay fork
-2. Add to `src/lib.rs`: `pub mod admin_error;`
-3. Extend `config.toml` with `[admin_error]` section (see below)
-4. Extend `config.rs` (see `config_example.rs`) and `Settings` struct
-5. In `start_server()`: build `AdminErrorContext` from settings, clone into closure
-6. Call `admin_error::send_admin_error_event()` from error handlers (db_writer, nostr_server)
+Use a fork of [nostr-rs-relay](https://github.com/scsibug/nostr-rs-relay) since these changes are not upstream.
 
-## Config
+| File | Change |
+|------|--------|
+| `src/admin_error.rs` | Copy from this contrib. `AdminErrorContext`, `send_admin_error_event()`, message length capped at 500 chars |
+| `src/config.rs` | Add `[admin_error]` section: `relay_sk`, `admin_pubkey`, `rate_limit_secs` (default 60) |
+| `src/server.rs` | Build `AdminErrorContext` at startup; pass into `handle_web_request`, `nostr_server`, `db_writer`. On NIP-01 validation error: call `send_admin_error_event()` |
+| `src/db.rs` | Pass `admin_error_ctx` to `db_writer`. On event insert error: call `send_admin_error_event()` |
+| `src/lib.rs` | Add `pub mod admin_error;` |
 
-Add to `config.toml`:
+## Configuration
+
+Add to your `config.toml`:
 
 ```toml
 [admin_error]
-# Relay secret key (hex or nsec1) for signing error events
-relay_sk = "YOUR_RELAY_NSEC_OR_HEX_SK"
-# Admin pubkey (hex, 64 chars) - receives error events via #p tag
-admin_pubkey = "DEIN_PUBKEY_HIER"
-# Optional: rate limit in seconds (default 60)
-#rate_limit_secs = 60
+# Relay secret key (hex or nsec) for signing error events. Use a dedicated key, not your personal nsec.
+relay_sk = "YOUR_RELAY_SECRET_KEY"
+# Admin pubkey (hex, 64 chars) to receive error events
+admin_pubkey = "YOUR_ADMIN_PUBKEY_HEX"
+# Optional: seconds between events (default 60)
+rate_limit_secs = 60
 ```
 
-## Usage
+In production, inject `relay_sk` via environment variables or secrets (e.g. Fly.io `RELAY_SK`) instead of committing it. Example entrypoint:
 
-```rust
-// In db_writer, on connection loss:
-admin_error::send_admin_error_event(
-    "Database connection lost",
-    &admin_error_ctx,
-    bcast_tx,
-);
-
-// On NIP-01 validation failure (in nostr_server, Err branch):
-admin_error::send_admin_error_event(
-    &format!("NIP-01 validation failed: {}", e),
-    &admin_error_ctx,
-    bcast_tx,
-);
+```bash
+if [ -n "$RELAY_SK" ]; then
+  sed -i "s|relay_sk = \".*\"|relay_sk = \"$RELAY_SK\"|" config.toml
+fi
+exec "$@"
 ```
 
-## Rate limiting
+## Security
 
-Max 1 error event per 60 seconds (configurable via `rate_limit_secs`).
+- Never commit `relay_sk`. Use platform secrets (Fly Secrets, Kubernetes Secrets, etc.).
+- Use a dedicated key for the relay, not your personal nsec.
+- `admin_pubkey` is the recipient of error messages (your admin identity).
 
-## PWA Subscription
+## Receiving errors (PWA / clients)
 
-The Nostr Relay Center PWA subscribes to `{"kinds":[1984],"#p":["<admin_pubkey>"]}` when connected and displays incoming admin errors in the Error Console.
+The Nostr Relay Center PWA subscribes to `{"kinds":[1984],"#p":["<admin_pubkey>"]}` when connected. Connect to your relay and log in with the admin key; errors appear in the Admin Error Log section.
+
+Any Nostr client can receive these events by subscribing with the same filter. Replace `<admin_pubkey>` with your hex pubkey.
