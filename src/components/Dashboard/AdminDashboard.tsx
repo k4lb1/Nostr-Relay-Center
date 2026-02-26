@@ -1,4 +1,12 @@
+import { useCallback, useEffect, useState } from 'react'
+import { useAuth } from '../../contexts/AuthContext'
 import { useRelay } from '../../hooks/useRelay'
+import { nip19 } from 'nostr-tools'
+import type { Event } from 'nostr-tools'
+import AdminErrorLog, {
+  eventToAdminErrorEntry,
+  type AdminErrorEntry,
+} from './AdminErrorLog'
 import ConnectionsList from './ConnectionsList'
 import ErrorConsole from './ErrorConsole'
 import Kind1CountChart from './Kind1CountChart'
@@ -7,8 +15,39 @@ import RelayMetadata from '../Relay/RelayMetadata'
 import RelayStats from './RelayStats'
 import WhitelistManager from './WhitelistManager'
 
+const MAX_ADMIN_ERRORS = 100
+
+function toHexPubkey(pubkey: string | null): string | null {
+  if (!pubkey) return null
+  if (pubkey.length === 64 && /^[a-fA-F0-9]+$/.test(pubkey)) return pubkey
+  try {
+    const decoded = nip19.decode(pubkey)
+    if (decoded.type === 'npub') return decoded.data
+    return null
+  } catch {
+    return null
+  }
+}
+
 export default function AdminDashboard() {
-  const { isConnected } = useRelay()
+  const { isConnected, subscribeAdminErrors } = useRelay()
+  const { pubkey } = useAuth()
+  const [adminErrors, setAdminErrors] = useState<AdminErrorEntry[]>([])
+
+  const hexPubkey = toHexPubkey(pubkey)
+
+  useEffect(() => {
+    if (!isConnected || !hexPubkey) return
+    return subscribeAdminErrors(hexPubkey, (ev: Event) => {
+      setAdminErrors((prev) => {
+        if (prev.some((e) => e.id === ev.id)) return prev
+        const next = [eventToAdminErrorEntry(ev), ...prev]
+        return next.slice(0, MAX_ADMIN_ERRORS)
+      })
+    })
+  }, [isConnected, hexPubkey, subscribeAdminErrors])
+
+  const clearAdminErrors = useCallback(() => setAdminErrors([]), [])
 
   return (
     <section className="flex flex-col gap-6">
@@ -24,6 +63,13 @@ export default function AdminDashboard() {
           </p>
         )}
       </section>
+
+      <AdminErrorLog
+        events={adminErrors}
+        onClear={clearAdminErrors}
+        isConnected={isConnected}
+        hasAdminPubkey={!!hexPubkey}
+      />
 
       <ErrorConsole />
 

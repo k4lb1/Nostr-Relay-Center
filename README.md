@@ -66,6 +66,7 @@ Output is in `dist/`. Serve that folder with any static host (e.g. Nginx, Netlif
 
 3. **Dashboard**  
    - **Charts (top):** Latency (ping) curve (green) and connection duration (gray).  
+   - **Admin Error Log:** Kind 1984 system errors from the relay (works with any relay; relay must emit these events).  
    - **Relay statistics:** Kind-1 event count (if relay supports NIP-45) and recent Kind-1 activity.  
    - **Active connections:** WebSocket status.  
    - **Relay metadata (NIP-11):** Full relay metadata.  
@@ -101,8 +102,8 @@ src/
 │   ├── AppHeader.tsx          # Theme toggle + ping
 │   ├── Auth/NSECAuth.tsx
 │   ├── Relay/RelayConnection.tsx, RelayMetadata.tsx
-│   └── Dashboard/AdminDashboard.tsx, ConnectionsList.tsx, RelayStats.tsx,
-│       RelayLatencyChart.tsx, ConnectionDurationChart.tsx, WhitelistManager.tsx
+│   └── Dashboard/AdminDashboard.tsx, AdminErrorLog.tsx, ConnectionsList.tsx,
+│       RelayStats.tsx, RelayLatencyChart.tsx, ConnectionDurationChart.tsx, WhitelistManager.tsx
 ├── contexts/                  # AuthContext, RelayContext, NIP11Context
 ├── hooks/                     # useRelay, useNIP11
 ├── services/relay.ts          # WebSocket, send event, measureRoundTrip, requestCount
@@ -131,6 +132,7 @@ src/
 - **Whitelist UI:** The PWA uses NIP-11 `software` to decide whether to show the Kind 25000 whitelist UI. Relays that report `nostr-rs-relay` get “No NIP 25000 support”; others (strfry, nostream, custom) get the whitelist UI.
 - **nostr-rs-relay:** Does **not** use Kind 25000 for access control. Whitelist is configured in `config.toml` under `[authorization]` → `pubkey_whitelist` (hex pubkeys).
 - **Kind 25000 (whitelist):** The app can publish events like `{ kind: 25000, content: JSON.stringify({ allowed_pubkeys: [...] }), tags: [["d","whitelist"]] }` or `{ allow_all: true }`. This only takes effect if something interprets those events (e.g. a plugin or daemon that updates relay config).
+- **Admin Error Log (Kind 1984):** The PWA subscribes to `{"kinds":[1984],"#p":["<admin_pubkey>"]}` and displays relay system errors. This works with any Nostr relay (nostr-rs-relay, strfry, nostream, custom). Errors appear only if the relay implementation emits Kind 1984 events. The PWA is relay-agnostic; the relay must be extended to send these events (e.g. via `contrib/relay-admin-error` for nostr-rs-relay).
 
 ## Extending
 

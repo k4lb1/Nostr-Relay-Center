@@ -193,6 +193,47 @@ export function subscribeToRecentEvents(
   }
 }
 
+const ADMIN_ERROR_KIND = 1984
+
+export function subscribeToAdminErrors(
+  ws: WebSocket,
+  adminPubkey: string,
+  onEvent: (event: Event) => void
+): () => void {
+  if (ws.readyState !== WebSocket.OPEN || !adminPubkey) return () => {}
+  const subId = `admin-err-${Date.now()}`
+  ws.send(
+    JSON.stringify([
+      'REQ',
+      subId,
+      { kinds: [ADMIN_ERROR_KIND], '#p': [adminPubkey], limit: 50 }
+    ])
+  )
+  const messageHandler = (event: MessageEvent) => {
+    try {
+      const data = JSON.parse(event.data as string)
+      if (
+        Array.isArray(data) &&
+        data[0] === 'EVENT' &&
+        data[1] === subId &&
+        data[2]
+      ) {
+        const ev = data[2] as Event
+        if (ev.kind === ADMIN_ERROR_KIND) onEvent(ev)
+      }
+    } catch {
+      // ignore
+    }
+  }
+  ws.addEventListener('message', messageHandler)
+  return () => {
+    ws.removeEventListener('message', messageHandler)
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(['CLOSE', subId]))
+    }
+  }
+}
+
 export function subscribeToConnections(
   ws: WebSocket,
   _onUpdate: (connections: any[]) => void

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
-import { createRelayConnection, sendEvent, requestCount as relayRequestCount, subscribeToRecentEvents, measureRoundTrip } from '../services/relay'
+import { createRelayConnection, sendEvent, requestCount as relayRequestCount, subscribeToRecentEvents, subscribeToAdminErrors, measureRoundTrip } from '../services/relay'
 import type { Event } from 'nostr-tools'
 import { useLog } from './LogContext'
 
@@ -20,6 +20,7 @@ export interface UseRelayReturn {
   sendRelayEvent: (event: Event) => Promise<void>
   requestCount: (filter: { kinds?: number[]; since?: number; until?: number }) => Promise<number | null>
   subscribeRecent: (filter: { kinds: number[]; limit?: number }, onEvent: (event: Event) => void) => () => void
+  subscribeAdminErrors: (adminPubkey: string, onEvent: (event: Event) => void) => () => void
 }
 
 interface RelayContextType extends UseRelayReturn {}
@@ -114,6 +115,14 @@ export function RelayProvider({ children }: { children: React.ReactNode }) {
     [isConnected]
   )
 
+  const subscribeAdminErrors = useCallback(
+    (adminPubkey: string, onEvent: (event: Event) => void) => {
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return () => {}
+      return subscribeToAdminErrors(wsRef.current, adminPubkey, onEvent)
+    },
+    [isConnected]
+  )
+
   useEffect(() => {
     if (!isConnected || !wsRef.current) return
     const run = () => {
@@ -186,7 +195,7 @@ export function RelayProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <RelayContext.Provider
-      value={{ url, isConnected, error, pingSamples, connectedAt, durationSamples, kind1CountSamples, recentKind1Events, connect, disconnect, sendRelayEvent, requestCount, subscribeRecent }}
+      value={{ url, isConnected, error, pingSamples, connectedAt, durationSamples, kind1CountSamples, recentKind1Events, connect, disconnect, sendRelayEvent, requestCount, subscribeRecent, subscribeAdminErrors }}
     >
       {children}
     </RelayContext.Provider>
